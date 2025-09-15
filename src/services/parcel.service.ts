@@ -1,92 +1,71 @@
-import Parcel, { IParcel, ParcelStatus } from "../models/parcel.model";
-import { generateTrackingId } from "../utils/tracking.util";
-import mongoose from "mongoose";
+import Parcel from "../models/parcel.model";
+import User from "../models/user.model";
+import { Types } from "mongoose";
 
-export const createParcel = async (data: Partial<IParcel>, senderId: string) => {
-  const trackingId = generateTrackingId();
-  const parcel = await Parcel.create({
-    ...data,
-    trackingId,
-    sender: senderId,
+interface CreateParcelDTO {
+  type: string;
+  weight: number;
+  receiverId: string;
+  pickupAddress: string;
+  deliveryAddress: string;
+  fee: number;
+}
+
+export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
+  // ✅ Check if receiver exists and is a receiver
+  const receiver = await User.findById(data.receiverId);
+  if (!receiver) {
+    throw new Error("Receiver not found");
+  }
+  if (receiver.role !== "receiver") {
+    throw new Error("Assigned user is not a receiver");
+  }
+
+  const parcel = new Parcel({
+    type: data.type,
+    weight: data.weight,
+    senderId: new Types.ObjectId(senderId),
+    receiverId: new Types.ObjectId(data.receiverId),
+    pickupAddress: data.pickupAddress,
+    deliveryAddress: data.deliveryAddress,
+    fee: data.fee,
     status: "Requested",
-    statusLogs: [
+    trackingEvents: [
       {
         status: "Requested",
-        note: "Parcel created",
-        updatedBy: new mongoose.Types.ObjectId(senderId),
+        timestamp: new Date(),
+        updatedBy: new Types.ObjectId(senderId),
+        note: "Parcel created by sender",
       },
     ],
   });
-  return parcel;
-};
 
-export const getParcelsForUser = async (userId: string, role: string) => {
-  let query: any = {};
-  if (role === "sender") query.sender = userId;
-  else if (role === "receiver") query["receiver.email"] = (await Parcel.findById(userId))?.receiver.email; // optional
-  const parcels = await Parcel.find(query).sort({ createdAt: -1 });
-  return parcels;
-};
-
-export const cancelParcel = async (parcelId: string, userId: string) => {
-  const parcel = await Parcel.findById(parcelId);
-  if (!parcel) throw new Error("Parcel not found");
-  if (parcel.sender.toString() !== userId) throw new Error("Not owner");
-  if (["Dispatched", "In Transit", "Delivered"].includes(parcel.status))
-    throw new Error("Cannot cancel dispatched/in-transit/delivered parcel");
-  parcel.status = "Cancelled";
-  parcel.statusLogs.push({
-    status: "Cancelled",
-    note: "Cancelled by sender",
-    updatedBy: new mongoose.Types.ObjectId(userId),
-  });
+  
   await parcel.save();
   return parcel;
 };
 
-export const confirmDelivery = async (parcelId: string, userId: string) => {
+export const confirmDelivery = async (parcelId: string, receiverId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
-  if (parcel.status === "Delivered") throw new Error("Already delivered");
-  parcel.status = "Delivered";
-  parcel.statusLogs.push({
-    status: "Delivered",
-    note: "Confirmed by receiver",
-    updatedBy: new mongoose.Types.ObjectId(userId),
-  });
+
+  // ✅ Check that logged-in user is the assigned receiver
+  if (parcel.receiverId.toString() !== receiverId) {
+    throw new Error("You are not authorized to confirm this delivery");
+  }
+
+  if (parcel.status === "Delivered") {
+    throw new Error("Parcel already confirmed as delivered");
+  }
+
+parcel.trackingEvents.push({
+  status: "Delivered",
+  updatedBy: new Types.ObjectId(receiverId),
+  note: "Receiver confirmed delivery",
+  timestamp: new Date(),   // ✅ match schema
+});
+
   await parcel.save();
   return parcel;
 };
 
-// Admin updates
-export const adminUpdateStatus = async (
-  parcelId: string,
-  status: ParcelStatus,
-  note: string,
-  updatedBy: string
-) => {
-  const parcel = await Parcel.findById(parcelId);
-  if (!parcel) throw new Error("Parcel not found");
-  parcel.status = status;
-  parcel.statusLogs.push({
-    status,
-    note,
-    updatedBy: new mongoose.Types.ObjectId(updatedBy),
-  });
-  await parcel.save();
-  return parcel;
-};
-
-export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
-  const parcel = await Parcel.findById(parcelId);
-  if (!parcel) throw new Error("Parcel not found");
-  parcel.blocked = blocked;
-  await parcel.save();
-  return parcel;
-};
-
-export const trackParcelById = async (trackingId: string) => {
-  const parcel = await Parcel.findOne({ trackingId }).select("-__v");
-  if (!parcel) throw new Error("Parcel not found");
-  return { trackingId: parcel.trackingId, status: parcel.status, statusLogs: parcel.statusLogs };
-};

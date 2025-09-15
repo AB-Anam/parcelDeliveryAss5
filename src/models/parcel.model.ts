@@ -1,63 +1,47 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
-
-export type ParcelStatus =
-  | "Requested"
-  | "Approved"
-  | "Dispatched"
-  | "In Transit"
-  | "Delivered"
-  | "Cancelled";
-
 export interface IStatusLog {
-  status: ParcelStatus;
-  note?: string;
-  location?: string;
+  status: string;
+  timestamp: Date;
   updatedBy?: Types.ObjectId;
-  createdAt?: Date;
+  note?: string;
 }
 
 export interface IParcel extends Document {
-  trackingId: string;
   type: string;
   weight: number;
+  senderId: Types.ObjectId;
+  receiverId: Types.ObjectId;
+  pickupAddress: string;
+  deliveryAddress: string;
   fee: number;
-  sender: Types.ObjectId;
-  receiver: { name: string; phone: string; address: string; email?: string };
-  status: ParcelStatus;
-  statusLogs: IStatusLog[];
-  blocked?: boolean;
+  status: string;
+  trackingEvents: IStatusLog[];
 }
 
 const StatusLogSchema = new Schema<IStatusLog>(
   {
     status: { type: String, required: true },
-    note: String,
-    location: String,
+    timestamp: { type: Date, default: Date.now },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
-    createdAt: { type: Date, default: Date.now },
+    note: { type: String },
   },
-  { _id: false }
+  { _id: false } // ✅ prevents auto _id for each log entry
 );
 
 const ParcelSchema = new Schema<IParcel>(
   {
-    trackingId: { type: String, unique: true },
-    type: { type: String, default: "standard" },
+    type: { type: String, required: true },
     weight: { type: Number, required: true },
+    senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    receiverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    pickupAddress: { type: String, required: true },
+    deliveryAddress: { type: String, required: true },
     fee: { type: Number, required: true },
-    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    receiver: {
-      name: String,
-      phone: String,
-      address: String,
-      email: String,
-    },
     status: { type: String, default: "Requested" },
-    statusLogs: { type: [StatusLogSchema], default: [] },
-    blocked: { type: Boolean, default: false },
+    trackingEvents: [StatusLogSchema],
   },
-  { timestamps: true }
+  { timestamps: true } // ✅ adds createdAt / updatedAt
 );
 
 export default mongoose.model<IParcel>("Parcel", ParcelSchema);
