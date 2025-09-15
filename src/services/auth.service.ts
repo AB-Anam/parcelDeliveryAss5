@@ -1,12 +1,19 @@
 import User, { IUser } from "../models/user.model";
 import jwt from "jsonwebtoken";
+import { RoleType } from "../types/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "changeme";
 const JWT_EXPIRES = "7d";
 
-export const registerUser = async (name: string, email: string, password: string, role: string) => {
+export const registerUser = async (
+  name: string,
+  email: string,
+  password: string,
+  role: RoleType
+) => {
   const exists = await User.findOne({ email });
   if (exists) throw new Error("Email already in use");
+
   const user = await User.create({ name, email, password, role });
   return { id: user._id, email: user.email, role: user.role };
 };
@@ -20,8 +27,4 @@ export const loginUser = async (email: string, password: string) => {
 
   const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
   return { token, user: { id: user._id, email: user.email, role: user.role } };
-};
-
-export const getUserById = async (id: string) => {
-  return await User.findById(id).select("-password");
 };
