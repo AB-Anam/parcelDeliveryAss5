@@ -1,31 +1,11 @@
-# Vercel deployment artifacts
-.vercel/
-
-# Node modules
 node_modules/
-
-# Environment variables
+dist/
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Build output
-dist/
-build/
-coverage/
-
-# Cache & temp files
-*.tsbuildinfo
-.cache/
-.tmp/
+*.log
 .vscode/
 .idea/
+.DS_Store

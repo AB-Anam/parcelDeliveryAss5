@@ -5,9 +5,7 @@ declare global {
 }
 
 const connectDB = async () => {
-  if (global.mongooseConnection) {
-    return global.mongooseConnection;
-  }
+  if (global.mongooseConnection) return global.mongooseConnection;
 
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI!);
