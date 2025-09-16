@@ -1,3 +1,6 @@
+# Vercel deployment artifacts
+.vercel/
+
 # Node modules
 node_modules/
 
