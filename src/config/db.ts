@@ -1,13 +1,22 @@
 import mongoose from "mongoose";
 
+declare global {
+  var mongooseConnection: any;
+}
 
 const connectDB = async () => {
+  if (global.mongooseConnection) {
+    return global.mongooseConnection;
+  }
+
   try {
-    await mongoose.connect(process.env.MONGO_URI || "");
+    const conn = await mongoose.connect(process.env.MONGO_URI!);
     console.log("✅ MongoDB connected");
+    global.mongooseConnection = conn;
+    return conn;
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error);
-    process.exit(1);
+    throw error;
   }
 };
 
