@@ -8,6 +8,11 @@ dotenv.config();
 // Connect to MongoDB
 connectDB();
 
+// Add this root route handler
+app.get('/', (req, res) => {
+  res.send('API is running successfully!');
+});
+
 const PORT = process.env.PORT || 4000;
 
 // Start the server
