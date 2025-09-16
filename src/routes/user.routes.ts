@@ -8,7 +8,10 @@ const router = Router();
 // Admin-only endpoints
 router.use(protect, authorize("admin"));
 
-router.get("/", UserController.listUsers);
-router.patch("/block/:id", UserController.blockUser);
+router.get("/", UserController.listUsers);              // all users
+router.get("/receivers", UserController.listReceivers); // only receivers
+router.get("/senders", UserController.listSenders);     // only senders
+router.patch("/block/:id", UserController.blockUser);   // block/unblock
+router.get("/blocked", UserController.listBlockedUsers); //only admin
 
 export default router;

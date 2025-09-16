@@ -19,6 +19,8 @@ export const getMyParcels = async (req: Request, res: Response) => {
   }
 };
 
+
+
 export const cancelParcel = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -72,3 +74,11 @@ export const trackParcel = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllParcels = async (req: Request, res: Response) => {
+  try {
+    const parcels = await ParcelService.getParcelsForUser(req.user.id, "admin");
+    res.json({ success: true, parcels });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
