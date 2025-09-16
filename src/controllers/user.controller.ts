@@ -53,3 +53,4 @@ export const listBlockedUsers = async (_req: Request, res: Response) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+

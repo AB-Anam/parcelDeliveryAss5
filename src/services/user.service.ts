@@ -23,3 +23,4 @@ export const toggleUserBlock = async (id: string, blocked: boolean) => {
 export const listBlockedUsers = async () => {
   return await User.find({ blocked: true }).select("-password");
 };
+

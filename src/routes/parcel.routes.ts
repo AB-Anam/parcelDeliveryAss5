@@ -22,4 +22,5 @@ router.patch("/status/:id", ParcelController.updateParcelStatus);
 router.patch("/block/:id", ParcelController.blockParcel);
 router.get("/", protect, authorize("admin"), ParcelController.getAllParcels);
 
+
 export default router;
