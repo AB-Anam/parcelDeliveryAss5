@@ -82,3 +82,14 @@ export const getAllParcels = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+// Get Delivery History for a Parcel
+export const getParcelHistory = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const parcel = await ParcelService.getParcelHistory(id, req.user.id, req.user.role);
+    res.json({ success: true, trackingEvents: parcel.trackingEvents });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

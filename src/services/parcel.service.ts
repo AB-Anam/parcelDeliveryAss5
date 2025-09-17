@@ -175,3 +175,18 @@ export const trackParcelById = async (trackingId: string) => {
   if (!parcel) throw new Error("Parcel not found");
   return parcel;
 };
+
+// Get parcel history for sender, receiver, or admin
+export const getParcelHistory = async (parcelId: string, userId: string, role: "sender" | "receiver" | "admin") => {
+  const parcel = await Parcel.findById(parcelId);
+  if (!parcel) throw new Error("Parcel not found");
+
+  // Only sender, receiver, or admin can see
+  if (role === "sender" && parcel.senderId.toString() !== userId) {
+    throw new Error("Unauthorized to view this parcel");
+  }
+  if (role === "receiver" && parcel.receiverId.toString() !== userId) {
+    throw new Error("Unauthorized to view this parcel");
+  }
+  return parcel;
+};

@@ -23,4 +23,8 @@ router.patch("/block/:id", ParcelController.blockParcel);
 router.get("/", protect, authorize("admin"), ParcelController.getAllParcels);
 
 
+// Delivery History (Sender or Receiver)
+router.get("/history/:id", protect, authorize("sender", "receiver"), ParcelController.getParcelHistory);
+
+
 export default router;
