@@ -2,6 +2,11 @@
 <h1 align="center">📦 Parcel Delivery API</h1>
 
 <p align="center">
+
+
+
+
+  
   A <b>full-stack backend service</b> for managing parcel deliveries with role-based authentication (Admin, Sender, Receiver).
   <br />
   Built with <b>Node.js, Express, MongoDB, TypeScript</b> and deployed on <b>Vercel</b>.
@@ -120,93 +125,95 @@ Each role has specific permissions:
 
 <h2>🧪 Postman Setup</h2>
 
-<h3>🔑 Environment Variables</h3>
-<pre>
-baseUrl: https://parcel-delivery-ass5.vercel.app
-adminToken: (set after admin login)
-senderToken: (set after sender login)
-receiverToken: (set after receiver login)
-receiverId: (copy from registered receiver user _id)
-parcelId: (copy from created parcel _id)
-trackingId: (copy from parcel trackingId)
-userId: (any registered user _id)
-</pre>
+<h1>📦 Parcel Delivery API - Postman Collection</h1>
 
----
+<h2>🌐 Environment Variables</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Value / Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>baseUrl</td><td>https://parcel-delivery-ass5.vercel.app</td></tr>
+    <tr><td>adminToken</td><td>(set after admin login)</td></tr>
+    <tr><td>senderToken</td><td>(set after sender login)</td></tr>
+    <tr><td>receiverToken</td><td>(set after receiver login)</td></tr>
+    <tr><td>receiverId</td><td>(copy from registered receiver user _id)</td></tr>
+    <tr><td>parcelId</td><td>(copy from created parcel _id)</td></tr>
+    <tr><td>trackingId</td><td>(copy from parcel trackingId)</td></tr>
+    <tr><td>userId</td><td>(any registered user _id)</td></tr>
+  </tbody>
+</table>
 
-<h2>📡 API Requests</h2>
+<hr>
 
-<h3>1️⃣ Auth (Separate Requests)</h3>
+<h2>1️⃣ Auth Requests</h2>
 
-<b>Register Sender</b>  
-<pre>
-POST {{baseUrl}}/api/auth/register
+<h3>Register Sender</h3>
+<pre><code>POST {{baseUrl}}/api/auth/register
+
+Body:
 {
   "name": "Alice Sender",
   "email": "alice.sender@example.com",
   "password": "password123",
   "role": "sender"
-}
-</pre>
+}</code></pre>
 
-<b>Register Receiver</b>  
-<pre>
-POST {{baseUrl}}/api/auth/register
+<h3>Register Receiver</h3>
+<pre><code>POST {{baseUrl}}/api/auth/register
+
+Body:
 {
   "name": "Bob Receiver",
   "email": "bob.receiver@example.com",
   "password": "password123",
   "role": "receiver"
-}
-</pre>
+}</code></pre>
 
-<b>Register Admin</b>  
-<pre>
-POST {{baseUrl}}/api/auth/register
+<h3>Register Admin</h3>
+<pre><code>POST {{baseUrl}}/api/auth/register
+
+Body:
 {
   "name": "Charlie Admin",
   "email": "charlie.admin@example.com",
   "password": "password123",
   "role": "admin"
-}
-</pre>
+}</code></pre>
 
-<b>Login Sender</b>  
-<pre>
-POST {{baseUrl}}/api/auth/login
+<h3>Login Requests</h3>
+<pre><code>Login Sender:
 {
   "email": "alice.sender@example.com",
   "password": "password123"
 }
-</pre>
 
-<b>Login Receiver</b>  
-<pre>
-POST {{baseUrl}}/api/auth/login
+Login Receiver:
 {
   "email": "bob.receiver@example.com",
   "password": "password123"
 }
-</pre>
 
-<b>Login Admin</b>  
-<pre>
-POST {{baseUrl}}/api/auth/login
+Login Admin:
 {
   "email": "charlie.admin@example.com",
   "password": "password123"
-}
-</pre>
+}</code></pre>
 
----
+<p>Copy the tokens to <code>{{senderToken}}</code>, <code>{{receiverToken}}</code>, <code>{{adminToken}}</code>.</p>
 
-<h3>2️⃣ Sender Parcel Requests</h3>
+<hr>
 
-<b>Create Parcel</b>  
-<pre>
-POST {{baseUrl}}/api/parcels
-Authorization: Bearer {{senderToken}}
+<h2>2️⃣ Sender Parcel Requests</h2>
 
+<h3>Create Parcel</h3>
+<pre><code>POST {{baseUrl}}/api/parcels
+Headers: Authorization: Bearer {{senderToken}}
+
+Body:
 {
   "type": "Box",
   "weight": 2.5,
@@ -214,101 +221,97 @@ Authorization: Bearer {{senderToken}}
   "pickupAddress": "123 Main St",
   "deliveryAddress": "456 Market Rd",
   "fee": 100
-}
-</pre>
+}</code></pre>
 
-<b>Get My Parcels</b>  
-<pre>
-GET {{baseUrl}}/api/parcels/me
-Authorization: Bearer {{senderToken}}
-</pre>
+<h3>Get My Parcels</h3>
+<pre><code>GET {{baseUrl}}/api/parcels/me
+Headers: Authorization: Bearer {{senderToken}}</code></pre>
 
-<b>Cancel Parcel</b>  
-<pre>
-PATCH {{baseUrl}}/api/parcels/cancel/{{parcelId}}
-Authorization: Bearer {{senderToken}}
-</pre>
+<h3>Cancel Parcel</h3>
+<pre><code>PATCH {{baseUrl}}/api/parcels/cancel/{{parcelId}}
+Headers: Authorization: Bearer {{senderToken}}</code></pre>
 
----
+<hr>
 
-<h3>3️⃣ Receiver Parcel Requests</h3>
+<h2>3️⃣ Receiver Parcel Requests</h2>
 
-<b>Confirm Delivery</b>  
-<pre>
-PATCH {{baseUrl}}/api/parcels/confirm/{{parcelId}}
-Authorization: Bearer {{receiverToken}}
-</pre>
+<h3>Confirm Delivery</h3>
+<pre><code>PATCH {{baseUrl}}/api/parcels/confirm/{{parcelId}}
+Headers: Authorization: Bearer {{receiverToken}}</code></pre>
 
-<b>Get My Parcels</b>  
-<pre>
-GET {{baseUrl}}/api/parcels/me
-Authorization: Bearer {{receiverToken}}
-</pre>
+<h3>Get My Parcels</h3>
+<pre><code>GET {{baseUrl}}/api/parcels/me
+Headers: Authorization: Bearer {{receiverToken}}</code></pre>
 
----
+<hr>
 
-<h3>4️⃣ Admin Requests</h3>
+<h2>4️⃣ Admin Requests</h2>
 
-<b>List All Users</b>  
-<pre>
-GET {{baseUrl}}/api/users
-Authorization: Bearer {{adminToken}}
-</pre>
+<h3>List All Users</h3>
+<pre><code>GET {{baseUrl}}/api/users
+Headers: Authorization: Bearer {{adminToken}}</code></pre>
 
-<b>Block User</b>  
-<pre>
-PATCH {{baseUrl}}/api/users/block/{{userId}}
-Authorization: Bearer {{adminToken}}
+<h3>Block User</h3>
+<pre><code>PATCH {{baseUrl}}/api/users/block/{{userId}}
+Headers: Authorization: Bearer {{adminToken}}
+Body:
+{ "blocked": true }</code></pre>
 
-{ "blocked": true }
-</pre>
+<h3>Unblock User</h3>
+<pre><code>PATCH {{baseUrl}}/api/users/block/{{userId}}
+Headers: Authorization: Bearer {{adminToken}}
+Body:
+{ "blocked": false }</code></pre>
 
-<b>Unblock User</b>  
-<pre>
-PATCH {{baseUrl}}/api/users/block/{{userId}}
-Authorization: Bearer {{adminToken}}
+<h3>Get All Parcels</h3>
+<pre><code>GET {{baseUrl}}/api/parcels
+Headers: Authorization: Bearer {{adminToken}}</code></pre>
 
-{ "blocked": false }
-</pre>
+<h3>Get All Blocked Users</h3>
+<pre><code>GET {{baseUrl}}/api/users/blocked
+Headers: Authorization: Bearer {{adminToken}}</code></pre>
 
-<b>Get All Parcels</b>  
-<pre>
-GET {{baseUrl}}/api/parcels
-Authorization: Bearer {{adminToken}}
-</pre>
+<h3>Update Parcel Status</h3>
+<pre><code>PATCH {{baseUrl}}/api/parcels/status/{{parcelId}}
+Headers: Authorization: Bearer {{adminToken}}
+Body:
+{ "status": "Approved", "note": "Approved by admin" }</code></pre>
 
-<b>Get All Blocked Users</b>  
-<pre>
-GET {{baseUrl}}/api/users/blocked
-Authorization: Bearer {{adminToken}}
-</pre>
+<h3>Block Parcel</h3>
+<pre><code>PATCH {{baseUrl}}/api/parcels/block/{{parcelId}}
+Headers: Authorization: Bearer {{adminToken}}
+Body:
+{ "blocked": true }</code></pre>
 
-<b>Update Parcel Status</b>  
-<pre>
-PATCH {{baseUrl}}/api/parcels/status/{{parcelId}}
-Authorization: Bearer {{adminToken}}
+<hr>
 
-{ "status": "Approved", "note": "Approved by admin" }
-</pre>
+<h2>5️⃣ Public Parcel Requests</h2>
 
-<b>Block Parcel</b>  
-<pre>
-PATCH {{baseUrl}}/api/parcels/block/{{parcelId}}
-Authorization: Bearer {{adminToken}}
+<h3>Track Parcel</h3>
+<pre><code>GET {{baseUrl}}/api/parcels/track/{{trackingId}}</code></pre>
 
-{ "blocked": true }
-</pre>
+<hr>
 
----
+<h2>6️⃣ Parcel History (Sender/Receiver)</h2>
 
-<h3>5️⃣ Public Parcel Requests</h3>
+<h3>Get Delivery History</h3>
+<pre><code>GET {{baseUrl}}/api/parcels/history/{{parcelId}}
+Headers: Authorization: Bearer {{senderToken}} or {{receiverToken}}</code></pre>
 
-<b>Track Parcel</b>  
-<pre>
-GET {{baseUrl}}/api/parcels/track/{{trackingId}}
-</pre>
+<p>This shows all status changes for a parcel, including timestamps, notes, and who updated it.</p>
 
----
+<hr>
+
+<h2>✅ Testing Workflow</h2>
+<ol>
+  <li>Register users (sender, receiver, admin).</li>
+  <li>Login and save tokens.</li>
+  <li>Sender creates a parcel → copy <code>parcelId</code> and <code>trackingId</code>.</li>
+  <li>Admin approves parcel or updates status.</li>
+  <li>Receiver confirms delivery.</li>
+  <li>Test Parcel History to see the full delivery log.</li>
+  <li>Admin can view all users, block/unblock, and view all parcels.</li>
+</ol>
 
 <h2>📦 Dummy Test Data</h2>
 
