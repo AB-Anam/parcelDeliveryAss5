@@ -10,7 +10,7 @@ router.get("/track/:trackingId", ParcelController.trackParcel);
 
 // Sender-only
 router.post("/", protect, authorize("sender"), ParcelController.createParcel);
-router.get("/me", protect, authorize("sender"), ParcelController.getMyParcels);
+router.get("/me", protect, authorize("sender", "receiver"), ParcelController.getMyParcels);
 router.patch("/cancel/:id", protect, authorize("sender"), ParcelController.cancelParcel);
 
 // Receiver-only
