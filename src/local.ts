@@ -1,20 +1,13 @@
 import dotenv from "dotenv";
 import connectDB from "./config/db";
-import app from "./server"; // import the exported app
+import app from "./app";
 
-// Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
+// Connect DB locally
 connectDB();
 
-// Define root route if not already defined in server.ts
-app.get("/", (req, res) => {
-  res.send("API is running successfully! (Local)");
-});
-
-// Start the server locally
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`⚡ Server running locally on http://localhost:${PORT}`);
+  console.log(`⚡ Server running locally at http://localhost:${PORT}`);
 });
