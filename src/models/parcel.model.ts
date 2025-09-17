@@ -16,6 +16,7 @@ export interface IParcel extends Document {
   deliveryAddress: string;
   fee: number;
   status: string;
+  trackingId: string;          // ✅ Added trackingId
   trackingEvents: IStatusLog[];
 }
 
@@ -26,7 +27,7 @@ const StatusLogSchema = new Schema<IStatusLog>(
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     note: { type: String },
   },
-  { _id: false } // ✅ prevents auto _id for each log entry
+  { _id: false } // prevents auto _id for each log entry
 );
 
 const ParcelSchema = new Schema<IParcel>(
@@ -39,9 +40,10 @@ const ParcelSchema = new Schema<IParcel>(
     deliveryAddress: { type: String, required: true },
     fee: { type: Number, required: true },
     status: { type: String, default: "Requested" },
+    trackingId: { type: String, unique: true, required: true }, // ✅ unique trackingId
     trackingEvents: [StatusLogSchema],
   },
-  { timestamps: true } // ✅ adds createdAt / updatedAt
+  { timestamps: true } // adds createdAt / updatedAt
 );
 
 export default mongoose.model<IParcel>("Parcel", ParcelSchema);
