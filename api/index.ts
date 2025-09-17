@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Ensure DB is connected in serverless
+// Connect DB in serverless
 connectDB();
 
 export default app;
