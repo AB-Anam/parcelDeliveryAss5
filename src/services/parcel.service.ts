@@ -11,18 +11,19 @@ interface CreateParcelDTO {
   fee: number;
 }
 
-// Valid status transitions
+// ✅ Valid status transitions
 const STATUS_FLOW: Record<string, string[]> = {
-  Requested: ["Approved", "Canceled"],        // Sender creates → can be approved by Admin or canceled by Sender
-  Approved: ["Dispatched", "Canceled"],      // Admin approves → can be dispatched or canceled
-  Dispatched: ["In Transit"],                 // Parcel handed over → can go in transit
-  "In Transit": ["Delivered", "Returned"],   // Delivery in progress → can be delivered or returned
-  Delivered: [],                              // Final state
-  Canceled: [],                               // Final state
-  Blocked: ["Unblocked"],                     // Optional, admin can unblock
-  Returned: [],                               // Optional final state
+  Requested: ["Approved", "Canceled"],
+  Approved: ["Dispatched", "Canceled"],
+  Dispatched: ["In Transit"],
+  "In Transit": ["Delivered", "Returned"],
+  Delivered: [],
+  Canceled: [],
+  Blocked: ["Unblocked"],
+  Returned: [],
 };
 
+// Validate status changes
 const validateStatusTransition = (current: string, next: string) => {
   const allowed = STATUS_FLOW[current];
   if (!allowed || !allowed.includes(next)) {
@@ -30,15 +31,20 @@ const validateStatusTransition = (current: string, next: string) => {
   }
 };
 
+// Generate unique tracking ID
+const generateTrackingId = () => {
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+  const random = Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, "0");
+  return `TRK-${date}-${random}`;
+};
+
+// Create a new parcel
 export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
-  // ✅ Check if receiver exists and is a receiver
   const receiver = await User.findById(data.receiverId);
-  if (!receiver) {
-    throw new Error("Receiver not found");
-  }
-  if (receiver.role !== "receiver") {
-    throw new Error("Assigned user is not a receiver");
-  }
+  if (!receiver) throw new Error("Receiver not found");
+  if (receiver.role !== "receiver") throw new Error("Assigned user is not a receiver");
 
   const parcel = new Parcel({
     type: data.type,
@@ -49,6 +55,7 @@ export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
     deliveryAddress: data.deliveryAddress,
     fee: data.fee,
     status: "Requested",
+    trackingId: generateTrackingId(),
     trackingEvents: [
       {
         status: "Requested",
@@ -59,11 +66,11 @@ export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
     ],
   });
 
-  
   await parcel.save();
   return parcel;
 };
 
+// Admin updates parcel status
 export const adminUpdateStatus = async (
   parcelId: string,
   newStatus: string,
@@ -73,7 +80,6 @@ export const adminUpdateStatus = async (
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
-  // Validate transition
   validateStatusTransition(parcel.status, newStatus);
 
   parcel.status = newStatus;
@@ -88,6 +94,7 @@ export const adminUpdateStatus = async (
   return parcel;
 };
 
+// Get parcels based on role
 export const getParcelsForUser = async (
   userId: string,
   role: "sender" | "receiver" | "admin"
@@ -103,10 +110,12 @@ export const getParcelsForUser = async (
   }
 };
 
+// Get all parcels (admin)
 export const getAllParcels = async () => {
   return Parcel.find().populate("senderId receiverId");
 };
 
+// Receiver confirms delivery
 export const confirmDelivery = async (parcelId: string, receiverId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
@@ -129,22 +138,20 @@ export const confirmDelivery = async (parcelId: string, receiverId: string) => {
   return parcel;
 };
 
+// Sender cancels parcel
 export const cancelParcel = async (parcelId: string, senderId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
-  // Check that the logged-in user is the sender
   if (parcel.senderId.toString() !== senderId) {
     throw new Error("You are not authorized to cancel this parcel");
   }
 
-  // Only allow cancellation if the parcel is not yet dispatched or delivered
   const cancellableStatuses = ["Requested", "Approved"];
   if (!cancellableStatuses.includes(parcel.status)) {
     throw new Error(`Cannot cancel parcel in status: ${parcel.status}`);
   }
 
-  // Update status and add tracking log
   parcel.status = "Canceled";
   parcel.trackingEvents.push({
     status: "Canceled",
@@ -157,6 +164,7 @@ export const cancelParcel = async (parcelId: string, senderId: string) => {
   return parcel;
 };
 
+// Admin blocks/unblocks parcel
 export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
@@ -166,11 +174,12 @@ export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
   return parcel;
 };
 
-// Track parcel by trackingId (Public)
+// Track parcel by trackingId (public)
 export const trackParcelById = async (trackingId: string) => {
-  const parcel = await Parcel.findOne({ _id: trackingId })
-    .populate("senderId receiverId", "name email role");
+  const parcel = await Parcel.findOne({ trackingId }).populate(
+    "senderId receiverId",
+    "name email role"
+  );
   if (!parcel) throw new Error("Parcel not found");
   return parcel;
 };
-
