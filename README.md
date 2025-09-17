@@ -1,14 +1,8 @@
-
 <h1 align="center">📦 Parcel Delivery API</h1>
 
 <p align="center">
-
-
-
-
-  
-  A <b>full-stack backend service</b> for managing parcel deliveries with role-based authentication (Admin, Sender, Receiver).
-  <br />
+  A <b>full-stack backend service</b> for managing parcel deliveries with role-based authentication (Admin, Sender, Receiver). <br/>
+  Provides secure parcel lifecycle management, user management, and public tracking. <br/>
   Built with <b>Node.js, Express, MongoDB, TypeScript</b> and deployed on <b>Vercel</b>.
 </p>
 
@@ -62,6 +56,7 @@ Each role has specific permissions:
 ├── package.json
 ├── tsconfig.json
 ├── vercel.json
+├── postman (Postman collection JSON)
 </pre>
 
 ---
@@ -114,20 +109,21 @@ Each role has specific permissions:
 
 ---
 
-
 <h2>🌍 Deployment</h2>
 <p>
 🔗 <b>Live API (Vercel):</b> <a href="https://parcel-delivery-ass5.vercel.app" target="_blank">https://parcel-delivery-ass5.vercel.app</a> <br/>
-💻 <b>GitHub Repo:</b> <a href="https://github.com/your-username/parcel-delivery-ass5" target="_blank">GitHub Repository</a>
+💻 <b>GitHub Repo:</b> <a href="https://github.com/AB-Anam/parcelDeliveryAss5" target="_blank">GitHub Repository</a>
 </p>
 
 ---
 
-<h2>🧪 Postman Setup</h2>
+<h2>📦 Postman Collection</h2>
+<p>
+Import the Postman collection to quickly test all API endpoints: <br/>
+<a href="https://raw.githubusercontent.com/AB-Anam/parcelDeliveryAss5/main/postman/ParcelDeliveryAPI.postman_collection.json" target="_blank">Download Postman Collection</a>
+</p>
 
-<h1>📦 Parcel Delivery API - Postman Collection</h1>
-
-<h2>🌐 Environment Variables</h2>
+<h2>🌐 Environment Variables (Postman)</h2>
 <table>
   <thead>
     <tr>
@@ -147,13 +143,12 @@ Each role has specific permissions:
   </tbody>
 </table>
 
-<hr>
+---
 
 <h2>1️⃣ Auth Requests</h2>
 
 <h3>Register Sender</h3>
 <pre><code>POST {{baseUrl}}/api/auth/register
-
 Body:
 {
   "name": "Alice Sender",
@@ -164,7 +159,6 @@ Body:
 
 <h3>Register Receiver</h3>
 <pre><code>POST {{baseUrl}}/api/auth/register
-
 Body:
 {
   "name": "Bob Receiver",
@@ -175,7 +169,6 @@ Body:
 
 <h3>Register Admin</h3>
 <pre><code>POST {{baseUrl}}/api/auth/register
-
 Body:
 {
   "name": "Charlie Admin",
@@ -205,14 +198,13 @@ Login Admin:
 
 <p>Copy the tokens to <code>{{senderToken}}</code>, <code>{{receiverToken}}</code>, <code>{{adminToken}}</code>.</p>
 
-<hr>
+---
 
 <h2>2️⃣ Sender Parcel Requests</h2>
 
 <h3>Create Parcel</h3>
 <pre><code>POST {{baseUrl}}/api/parcels
 Headers: Authorization: Bearer {{senderToken}}
-
 Body:
 {
   "type": "Box",
@@ -231,7 +223,7 @@ Headers: Authorization: Bearer {{senderToken}}</code></pre>
 <pre><code>PATCH {{baseUrl}}/api/parcels/cancel/{{parcelId}}
 Headers: Authorization: Bearer {{senderToken}}</code></pre>
 
-<hr>
+---
 
 <h2>3️⃣ Receiver Parcel Requests</h2>
 
@@ -243,7 +235,7 @@ Headers: Authorization: Bearer {{receiverToken}}</code></pre>
 <pre><code>GET {{baseUrl}}/api/parcels/me
 Headers: Authorization: Bearer {{receiverToken}}</code></pre>
 
-<hr>
+---
 
 <h2>4️⃣ Admin Requests</h2>
 
@@ -252,82 +244,8 @@ Headers: Authorization: Bearer {{receiverToken}}</code></pre>
 Headers: Authorization: Bearer {{adminToken}}</code></pre>
 
 <h3>Block User</h3>
-<pre><code>PATCH {{baseUrl}}/api/users/block/{{userId}}
-Headers: Authorization: Bearer {{adminToken}}
-Body:
-{ "blocked": true }</code></pre>
+<pre><code>PATCH {{baseUrl}}
 
-<h3>Unblock User</h3>
-<pre><code>PATCH {{baseUrl}}/api/users/block/{{userId}}
-Headers: Authorization: Bearer {{adminToken}}
-Body:
-{ "blocked": false }</code></pre>
-
-<h3>Get All Parcels</h3>
-<pre><code>GET {{baseUrl}}/api/parcels
-Headers: Authorization: Bearer {{adminToken}}</code></pre>
-
-<h3>Get All Blocked Users</h3>
-<pre><code>GET {{baseUrl}}/api/users/blocked
-Headers: Authorization: Bearer {{adminToken}}</code></pre>
-
-<h3>Update Parcel Status</h3>
-<pre><code>PATCH {{baseUrl}}/api/parcels/status/{{parcelId}}
-Headers: Authorization: Bearer {{adminToken}}
-Body:
-{ "status": "Approved", "note": "Approved by admin" }</code></pre>
-
-<h3>Block Parcel</h3>
-<pre><code>PATCH {{baseUrl}}/api/parcels/block/{{parcelId}}
-Headers: Authorization: Bearer {{adminToken}}
-Body:
-{ "blocked": true }</code></pre>
-
-<hr>
-
-<h2>5️⃣ Public Parcel Requests</h2>
-
-<h3>Track Parcel</h3>
-<pre><code>GET {{baseUrl}}/api/parcels/track/{{trackingId}}</code></pre>
-
-<hr>
-
-<h2>6️⃣ Parcel History (Sender/Receiver)</h2>
-
-<h3>Get Delivery History</h3>
-<pre><code>GET {{baseUrl}}/api/parcels/history/{{parcelId}}
-Headers: Authorization: Bearer {{senderToken}} or {{receiverToken}}</code></pre>
-
-<p>This shows all status changes for a parcel, including timestamps, notes, and who updated it.</p>
-
-<hr>
-
-<h2>✅ Testing Workflow</h2>
-<ol>
-  <li>Register users (sender, receiver, admin).</li>
-  <li>Login and save tokens.</li>
-  <li>Sender creates a parcel → copy <code>parcelId</code> and <code>trackingId</code>.</li>
-  <li>Admin approves parcel or updates status.</li>
-  <li>Receiver confirms delivery.</li>
-  <li>Test Parcel History to see the full delivery log.</li>
-  <li>Admin can view all users, block/unblock, and view all parcels.</li>
-</ol>
-
-<h2>📦 Dummy Test Data</h2>
-
-<pre>
-Sender:
-  email: alice.sender@example.com
-  password: password123
-
-Receiver:
-  email: bob.receiver@example.com
-  password: password123
-
-Admin:
-  email: charlie.admin@example.com
-  password: password123
-</pre>
 
 ---
 
