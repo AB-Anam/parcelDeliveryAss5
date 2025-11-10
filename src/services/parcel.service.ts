@@ -7,7 +7,6 @@ import crypto from "crypto";
 interface CreateParcelDTO {
   type: string;
   weight: number;
-  receiverId: string;
   pickupAddress: string;
   deliveryAddress: string;
 }
@@ -40,17 +39,12 @@ const validateStatusTransition = (current: string, next: string) => {
 
 // ✅ Create a new parcel
 export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
-  const receiver = await User.findById(data.receiverId);
-  if (!receiver) throw new Error("Receiver not found");
-  if (receiver.role !== "receiver") throw new Error("Assigned user is not a receiver");
-
   const fee = data.weight * 10;
 
   const parcel = new Parcel({
     type: data.type,
     weight: data.weight,
     senderId: new Types.ObjectId(senderId),
-    receiverId: new Types.ObjectId(data.receiverId),
     pickupAddress: data.pickupAddress,
     deliveryAddress: data.deliveryAddress,
     fee,
@@ -69,6 +63,7 @@ export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
   await parcel.save();
   return parcel;
 };
+
 
 // ✅ Get parcels for a user
 export const getParcelsForUser = async (
@@ -194,5 +189,32 @@ export const getParcelHistory = async (
   if (role === "receiver" && parcel.receiverId.toString() !== userId) {
     throw new Error("Unauthorized to view this parcel");
   }
+  return parcel;
+};
+
+// ✅ deliver a parcel
+
+export const deliverParcel = async (parcelId: string, senderId: string, receiverId: string) => {
+  const parcel = await Parcel.findById(parcelId);
+  if (!parcel) throw new Error("Parcel not found");
+
+  if (parcel.senderId.toString() !== senderId) {
+    throw new Error("You are not authorized to deliver this parcel");
+  }
+
+  const receiver = await User.findById(receiverId);
+  if (!receiver) throw new Error("Receiver not found");
+  if (receiver.role !== "receiver") throw new Error("Assigned user is not a receiver");
+
+  parcel.receiverId = new Types.ObjectId(receiverId);
+  parcel.status = "Approved"; // or "Dispatched" depending on your workflow
+  parcel.trackingEvents.push({
+    status: parcel.status,
+    updatedBy: new Types.ObjectId(senderId),
+    note: `Parcel assigned to receiver ${receiver.name}`,
+    timestamp: new Date(),
+  });
+
+  await parcel.save();
   return parcel;
 };
