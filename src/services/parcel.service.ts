@@ -10,13 +10,12 @@ interface CreateParcelDTO {
   receiverId: string;
   pickupAddress: string;
   deliveryAddress: string;
-  fee: number;
 }
 
 // ✅ Generate unique tracking ID
 const generateTrackingId = (): string => {
-  const datePart = new Date().toISOString().split("T")[0].replace(/-/g, ""); // YYYYMMDD
-  const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6 hex chars
+  const datePart = new Date().toISOString().split("T")[0].replace(/-/g, "");
+  const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase();
   return `TRK-${datePart}-${randomPart}`;
 };
 
@@ -39,11 +38,13 @@ const validateStatusTransition = (current: string, next: string) => {
   }
 };
 
-// Create a new parcel
+// ✅ Create a new parcel
 export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
   const receiver = await User.findById(data.receiverId);
   if (!receiver) throw new Error("Receiver not found");
   if (receiver.role !== "receiver") throw new Error("Assigned user is not a receiver");
+
+  const fee = data.weight * 10;
 
   const parcel = new Parcel({
     type: data.type,
@@ -52,7 +53,7 @@ export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
     receiverId: new Types.ObjectId(data.receiverId),
     pickupAddress: data.pickupAddress,
     deliveryAddress: data.deliveryAddress,
-    fee: data.fee,
+    fee,
     status: "Requested",
     trackingId: generateTrackingId(),
     trackingEvents: [
@@ -69,31 +70,7 @@ export const createParcel = async (data: CreateParcelDTO, senderId: string) => {
   return parcel;
 };
 
-// Admin updates parcel status
-export const adminUpdateStatus = async (
-  parcelId: string,
-  newStatus: string,
-  note: string,
-  adminId: string
-) => {
-  const parcel = await Parcel.findById(parcelId);
-  if (!parcel) throw new Error("Parcel not found");
-
-  validateStatusTransition(parcel.status, newStatus);
-
-  parcel.status = newStatus;
-  parcel.trackingEvents.push({
-    status: newStatus,
-    updatedBy: new Types.ObjectId(adminId),
-    note: note || `Status updated to ${newStatus} by admin`,
-    timestamp: new Date(),
-  });
-
-  await parcel.save();
-  return parcel;
-};
-
-// Get parcels for a user
+// ✅ Get parcels for a user
 export const getParcelsForUser = async (
   userId: string,
   role: "sender" | "receiver" | "admin"
@@ -109,30 +86,7 @@ export const getParcelsForUser = async (
   }
 };
 
-// Confirm delivery by receiver
-export const confirmDelivery = async (parcelId: string, receiverId: string) => {
-  const parcel = await Parcel.findById(parcelId);
-  if (!parcel) throw new Error("Parcel not found");
-
-  if (parcel.receiverId.toString() !== receiverId) {
-    throw new Error("You are not authorized to confirm this delivery");
-  }
-
-  validateStatusTransition(parcel.status, "Delivered");
-
-  parcel.status = "Delivered";
-  parcel.trackingEvents.push({
-    status: "Delivered",
-    updatedBy: new Types.ObjectId(receiverId),
-    note: "Receiver confirmed delivery",
-    timestamp: new Date(),
-  });
-
-  await parcel.save();
-  return parcel;
-};
-
-// Cancel parcel by sender
+// ✅ Cancel parcel by sender
 export const cancelParcel = async (parcelId: string, senderId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
@@ -158,7 +112,54 @@ export const cancelParcel = async (parcelId: string, senderId: string) => {
   return parcel;
 };
 
-// Block or unblock a parcel
+// ✅ Confirm delivery by receiver
+export const confirmDelivery = async (parcelId: string, receiverId: string) => {
+  const parcel = await Parcel.findById(parcelId);
+  if (!parcel) throw new Error("Parcel not found");
+
+  if (parcel.receiverId.toString() !== receiverId) {
+    throw new Error("You are not authorized to confirm this delivery");
+  }
+
+  validateStatusTransition(parcel.status, "Delivered");
+
+  parcel.status = "Delivered";
+  parcel.trackingEvents.push({
+    status: "Delivered",
+    updatedBy: new Types.ObjectId(receiverId),
+    note: "Receiver confirmed delivery",
+    timestamp: new Date(),
+  });
+
+  await parcel.save();
+  return parcel;
+};
+
+// ✅ Admin updates parcel status
+export const adminUpdateStatus = async (
+  parcelId: string,
+  newStatus: string,
+  note: string,
+  adminId: string
+) => {
+  const parcel = await Parcel.findById(parcelId);
+  if (!parcel) throw new Error("Parcel not found");
+
+  validateStatusTransition(parcel.status, newStatus);
+
+  parcel.status = newStatus;
+  parcel.trackingEvents.push({
+    status: newStatus,
+    updatedBy: new Types.ObjectId(adminId),
+    note: note || `Status updated to ${newStatus} by admin`,
+    timestamp: new Date(),
+  });
+
+  await parcel.save();
+  return parcel;
+};
+
+// ✅ Block or unblock a parcel
 export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
@@ -168,20 +169,25 @@ export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
   return parcel;
 };
 
-// Track parcel by trackingId (public)
+// ✅ Track parcel by trackingId
 export const trackParcelById = async (trackingId: string) => {
-  const parcel = await Parcel.findOne({ trackingId })
-    .populate("senderId receiverId", "name email role");
+  const parcel = await Parcel.findOne({ trackingId }).populate(
+    "senderId receiverId",
+    "name email role"
+  );
   if (!parcel) throw new Error("Parcel not found");
   return parcel;
 };
 
-// Get parcel history for sender, receiver, or admin
-export const getParcelHistory = async (parcelId: string, userId: string, role: "sender" | "receiver" | "admin") => {
+// ✅ Get parcel history
+export const getParcelHistory = async (
+  parcelId: string,
+  userId: string,
+  role: "sender" | "receiver" | "admin"
+) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
-  // Only sender, receiver, or admin can see
   if (role === "sender" && parcel.senderId.toString() !== userId) {
     throw new Error("Unauthorized to view this parcel");
   }
