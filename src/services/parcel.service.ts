@@ -3,18 +3,34 @@ import User from "../models/user.model";
 import { Types } from "mongoose";
 import crypto from "crypto";
 
-// --------------------------
-// Utility: Generate Tracking ID
-// --------------------------
+// Generate tracking ID
 const generateTrackingId = (): string => {
-  const datePart = new Date().toISOString().split("T")[0].replace(/-/g, "");
-  const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase();
-  return `TRK-${datePart}-${randomPart}`;
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const random = crypto.randomBytes(3).toString("hex").toUpperCase();
+  return `TRK-${date}-${random}`;
 };
 
-// --------------------------
-// Create Parcel (no receiver yet)
-// --------------------------
+// Valid status transitions
+const STATUS_FLOW: Record<string, string[]> = {
+  Requested: ["Pending Approval", "Canceled"],
+  "Pending Approval": ["Dispatched", "Canceled"],
+  Dispatched: ["On The Way", "Canceled"],
+  "On The Way": ["Delivered"],
+  Delivered: [],
+  Canceled: [],
+};
+
+// Validate transition
+const validateStatusTransition = (current: string, next: string) => {
+  const allowed = STATUS_FLOW[current] || [];
+  if (!allowed.includes(next)) {
+    throw new Error(`Invalid transition: ${current} → ${next}`);
+  }
+};
+
+/* ----------------------------------------------------------------
+   📦 CREATE PARCEL (Sender)
+---------------------------------------------------------------- */
 export const createParcel = async (data: any, senderId: string) => {
   const fee = data.weight * 10;
 
@@ -22,6 +38,7 @@ export const createParcel = async (data: any, senderId: string) => {
     type: data.type,
     weight: data.weight,
     senderId: new Types.ObjectId(senderId),
+    receiverId: new Types.ObjectId(), // placeholder, will be replaced later
     pickupAddress: data.pickupAddress,
     deliveryAddress: data.deliveryAddress,
     fee,
@@ -40,45 +57,64 @@ export const createParcel = async (data: any, senderId: string) => {
   return parcel;
 };
 
-// --------------------------
-// Deliver Parcel (assign receiver)
-// --------------------------
-export const deliverParcel = async (parcelId: string, senderId: string, receiverId: string) => {
+/* ----------------------------------------------------------------
+   🚚 DELIVER PARCEL (assign receiver)
+---------------------------------------------------------------- */
+export const deliverParcel = async (
+  parcelId: string,
+  senderId: string,
+  receiverId: string
+) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
   if (parcel.senderId.toString() !== senderId)
-    throw new Error("You can only deliver your own parcels");
+    throw new Error("You cannot deliver someone else's parcel");
 
-  if (parcel.receiverId)
-    throw new Error("Receiver already assigned for this parcel");
+  parcel.receiverId = new Types.ObjectId(receiverId);
+  parcel.status = "Pending Approval";
 
-  const receiver = await User.findById(receiverId);
-  if (!receiver || receiver.role !== "receiver")
-    throw new Error("Invalid receiver ID");
-
-  parcel.receiverId = receiver._id;
-  parcel.status = "Approved";
   parcel.trackingEvents.push({
-    status: "Approved",
+    status: "Pending Approval",
     timestamp: new Date(),
     updatedBy: new Types.ObjectId(senderId),
-    note: "Receiver assigned and parcel approved for dispatch",
+    note: "Receiver assigned, waiting admin approval",
   });
 
   await parcel.save();
   return parcel;
 };
 
-// --------------------------
-// Cancel Parcel
-// --------------------------
+/* ----------------------------------------------------------------
+   📬 GET PARCELS FOR USER
+---------------------------------------------------------------- */
+export const getParcelsForUser = async (userId: string, role: string) => {
+  if (role === "admin") return Parcel.find().sort({ createdAt: -1 });
+
+  if (role === "sender")
+    return Parcel.find({ senderId: new Types.ObjectId(userId) }).sort({
+      createdAt: -1,
+    });
+
+  if (role === "receiver")
+    return Parcel.find({ receiverId: new Types.ObjectId(userId) }).sort({
+      createdAt: -1,
+    });
+
+  return [];
+};
+
+/* ----------------------------------------------------------------
+   ❌ CANCEL PARCEL
+---------------------------------------------------------------- */
 export const cancelParcel = async (parcelId: string, userId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
   if (parcel.senderId.toString() !== userId)
-    throw new Error("You can only cancel your own parcels");
+    throw new Error("Only the sender can cancel parcel");
+
+  validateStatusTransition(parcel.status, "Canceled");
 
   parcel.status = "Canceled";
   parcel.trackingEvents.push({
@@ -92,89 +128,90 @@ export const cancelParcel = async (parcelId: string, userId: string) => {
   return parcel;
 };
 
-// --------------------------
-// Confirm Delivery (Receiver)
-// --------------------------
+/* ----------------------------------------------------------------
+   📦 RECEIVER CONFIRM DELIVERY
+---------------------------------------------------------------- */
 export const confirmDelivery = async (parcelId: string, receiverId: string) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
-  if (parcel.receiverId?.toString() !== receiverId)
-    throw new Error("You can only confirm parcels assigned to you");
+  if (parcel.receiverId.toString() !== receiverId)
+    throw new Error("This parcel does not belong to you");
+
+  validateStatusTransition(parcel.status, "Delivered");
 
   parcel.status = "Delivered";
+
   parcel.trackingEvents.push({
     status: "Delivered",
     timestamp: new Date(),
     updatedBy: new Types.ObjectId(receiverId),
-    note: "Parcel received and confirmed by receiver",
+    note: "Parcel received by the receiver",
   });
 
   await parcel.save();
   return parcel;
 };
 
-// --------------------------
-// Admin: Update Status
-// --------------------------
-export const adminUpdateStatus = async (parcelId: string, status: string, note: string, adminId: string) => {
+/* ----------------------------------------------------------------
+   👑 ADMIN UPDATE STATUS
+---------------------------------------------------------------- */
+export const adminUpdateStatus = async (
+  parcelId: string,
+  status: string,
+  note: string,
+  adminId: string
+) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
+
+  validateStatusTransition(parcel.status, status);
 
   parcel.status = status;
   parcel.trackingEvents.push({
     status,
     timestamp: new Date(),
     updatedBy: new Types.ObjectId(adminId),
-    note,
+    note: note || "",
   });
 
   await parcel.save();
   return parcel;
 };
 
-// --------------------------
-// Admin: Block / Unblock Parcel
-// --------------------------
+/* ----------------------------------------------------------------
+   👑 BLOCK / UNBLOCK
+---------------------------------------------------------------- */
 export const toggleParcelBlock = async (parcelId: string, blocked: boolean) => {
   const parcel = await Parcel.findById(parcelId);
   if (!parcel) throw new Error("Parcel not found");
 
   parcel.status = blocked ? "Blocked" : "Requested";
+
   parcel.trackingEvents.push({
-    status: blocked ? "Blocked" : "Unblocked",
+    status: parcel.status,
     timestamp: new Date(),
-    note: blocked ? "Parcel has been blocked by admin" : "Parcel unblocked by admin",
+    note: blocked ? "Parcel blocked by admin" : "Parcel unblocked",
   });
 
   await parcel.save();
   return parcel;
 };
 
-// --------------------------
-// Get Parcels (User-specific or Admin)
-// --------------------------
-export const getParcelsForUser = async (userId: string, role: string) => {
-  if (role === "admin") return Parcel.find().populate("senderId receiverId");
-  if (role === "sender") return Parcel.find({ senderId: userId }).populate("receiverId");
-  if (role === "receiver") return Parcel.find({ receiverId: userId }).populate("senderId");
-  throw new Error("Invalid role for parcel fetch");
-};
-
-// --------------------------
-// Track Parcel (Public)
-// --------------------------
+/* ----------------------------------------------------------------
+   🌍 TRACK PARCEL
+---------------------------------------------------------------- */
 export const trackParcelById = async (trackingId: string) => {
-  const parcel = await Parcel.findOne({ trackingId }).populate("senderId receiverId");
+  const parcel = await Parcel.findOne({ trackingId });
   if (!parcel) throw new Error("Parcel not found");
   return parcel;
 };
 
-// --------------------------
-// Get Parcel History
-// --------------------------
+/* ----------------------------------------------------------------
+   📜 GET PARCEL HISTORY
+---------------------------------------------------------------- */
 export const getParcelHistory = async (parcelId: string) => {
-  const parcel = await Parcel.findById(parcelId);
+  const parcel = await Parcel.findById(parcelId).select("trackingEvents");
   if (!parcel) throw new Error("Parcel not found");
   return parcel.trackingEvents;
 };
