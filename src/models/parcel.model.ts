@@ -35,15 +35,21 @@ const ParcelSchema = new Schema<IParcel>(
     type: { type: String, required: true },
     weight: { type: Number, required: true },
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    receiverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+
+    // NOW OPTIONAL
+    receiverId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+
     pickupAddress: { type: String, required: true },
     deliveryAddress: { type: String, required: true },
     fee: { type: Number, required: true },
-    status: { type: String, default: "Requested" },
-    trackingId: { type: String, unique: true, required: true }, // ✅ unique trackingId
+
+    // default workflow
+    status: { type: String, default: "Pending" },
+
+    trackingId: { type: String, unique: true, required: true },
     trackingEvents: [StatusLogSchema],
   },
-  { timestamps: true } // adds createdAt / updatedAt
+  { timestamps: true }
 );
 
 export default mongoose.model<IParcel>("Parcel", ParcelSchema);
