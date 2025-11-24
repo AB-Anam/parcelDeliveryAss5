@@ -1,3 +1,4 @@
+//src/routes/auth.routes.ts
 import { Router } from "express";
 import * as AuthController from "../controllers/auth.controller";
 import { protect } from "../middlewares/auth.middleware";
